@@ -1,5 +1,5 @@
 from socket import *
-import sys
+import time
 import os
 
 # IP address and port for the web proxy server are hard coded
@@ -16,6 +16,7 @@ def get_file_name(host_name, request_object):
     return cache_name
 
 if __name__ == "__main__":
+    start_time = time.time()
     # Create a socket that represents the server, bind it to a port
     server_socket = socket(AF_INET, SOCK_STREAM)
     # Set flag so that it can't be reused
@@ -107,5 +108,8 @@ if __name__ == "__main__":
                         f.close()
                         break
 # Close the client socket after one webpage is fetched.
-client_socket.close()
+#client_socket.close()
 server_socket.close()
+end_time = time.time()
+execution_time = end_time - start_time
+print("This execution took ", execution_time, " seconds")
