@@ -1,5 +1,5 @@
 from socket import *
-import sys
+import time
 import os
 
 # IP address and port for the web proxy server are hard coded
@@ -9,17 +9,14 @@ PORT = 8888 # Arbitrary
 # Set buffer size to hold 128 bytes
 BUFFER_SIZE = 1024
 
-# Replace all slashes with dashes, replace all . with 0, replace all : with 1 to avoid file issues
-# Arbitrary to avoid file issues
+# Save the file in the cache as hostName_requestObject where alll the slashes are replaced with underscores
 def get_file_name(host_name, request_object):
-    host_name = host_name.replace("/", "-")
-    request_object = request_object.replace("/", "-")
-    host_name = host_name.replace(".", "0")
-    request_object = request_object.replace(":", "1")
-    cache_name = str(host_name) + "_" + request_object + ".txt"
+    request_object = request_object.replace("/", "_")
+    cache_name = str(host_name) + "_" + request_object
     return cache_name
 
 if __name__ == "__main__":
+    start_time = time.time()
     # Create a socket that represents the server, bind it to a port
     server_socket = socket(AF_INET, SOCK_STREAM)
     # Set flag so that it can't be reused
@@ -33,11 +30,22 @@ if __name__ == "__main__":
     while 1:
         # Start receiving data from the client
         print('Ready to serve...')
+        server_socket.settimeout(10.0)
         # Accept returns a tuple: socket, port number
-        client_socket, client_address = server_socket.accept()
+        try:
+            client_socket, client_address = server_socket.accept()
+        except Exception as e:
+            break
         print('Received a connection from:', client_socket, client_address)
         # Decode data received from client
-        received_data = client_socket.recv(BUFFER_SIZE)
+        client_socket.settimeout(10.0)
+        try:
+            received_data = client_socket.recv(BUFFER_SIZE)
+        except Exception as e:
+            break
+        print("Received data")
+        if len(received_data) == 0:
+            break
         message = received_data.decode('utf-8')
         print(message)
         if not message.startswith("GET"):
@@ -70,8 +78,6 @@ if __name__ == "__main__":
                 client_socket.send(response_string_encoded)
                 with open(file_name, "rb") as file:
                     data = file.read()
-                    # data_string = data.decode("utf-8")
-                    # print("data from file: ", data_string)
                     client_socket.send(data)
                 # Close the client socket
                 client_socket.close()
@@ -87,7 +93,11 @@ if __name__ == "__main__":
                 while 1:
                     print("Receiving data from web server")
                     # Receive data from web server
-                    data = proxy_socket.recv(BUFFER_SIZE)
+                    proxy_socket.settimeout(10.0)
+                    try:
+                        data = proxy_socket.recv(BUFFER_SIZE)
+                    except Exception as e:
+                        break
                     if len(data) > 0:
                         # Send the data back to the client
                         client_socket.send(data)
@@ -97,6 +107,9 @@ if __name__ == "__main__":
                     else:
                         f.close()
                         break
-    # Close the client socket after one webpage is fetched.
-    client_socket.close()
-    server_socket.close()
+# Close the client socket after one webpage is fetched.
+#client_socket.close()
+server_socket.close()
+end_time = time.time()
+execution_time = end_time - start_time
+print("This execution took ", execution_time, " seconds")
